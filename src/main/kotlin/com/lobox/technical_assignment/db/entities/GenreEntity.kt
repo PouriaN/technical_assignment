@@ -6,9 +6,7 @@ import jakarta.persistence.*
 @Table(name = "genre")
 class GenreEntity (
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Int,
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    val id: Long? = null,
     val name: String,
-    @ManyToMany
-    val titles: List<TitleBasicsEntity>
 )
