@@ -1,18 +1,9 @@
-package com.lobox.technical_assignment.db.entities
+package com.lobox.technical_assignment.models
 
-import com.lobox.technical_assignment.exceptions.ImportCsvException
 import com.lobox.technical_assignment.util.convertToNullWhenEmpty
 import com.lobox.technical_assignment.util.toBool
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.ManyToMany
-import jakarta.persistence.Table
-import org.hibernate.annotations.JdbcType
-import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.type.SqlTypes
 
-data class TitleBasicsEntity(
+data class TitleBasicsModel(
     val tconst: String,
     val titleType: String,
     val primaryTitle: String,
@@ -24,7 +15,7 @@ data class TitleBasicsEntity(
     val genres: List<String>,
 ) {
     companion object {
-        fun of(values: List<String>) = TitleBasicsEntity(
+        fun of(values: List<String>) = TitleBasicsModel(
             tconst = values[0].convertToNullWhenEmpty() ?: throw Exception("import exception"),
             titleType = values[1].convertToNullWhenEmpty() ?: throw Exception("import exception"),
             primaryTitle = values[2].convertToNullWhenEmpty() ?: throw Exception("import exception"),

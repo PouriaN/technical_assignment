@@ -2,6 +2,7 @@ package com.lobox.technical_assignment.services
 
 import com.lobox.technical_assignment.exceptions.ImportException
 import com.lobox.technical_assignment.util.convertToNullWhenEmpty
+import com.lobox.technical_assignment.util.readCsv
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -26,23 +27,13 @@ class TitleCrewService(
         logger.info("initializing has been started TitleCrewService")
         val start = System.currentTimeMillis()
         try {
-            Files.newBufferedReader(Path.of(datasetPath, csvFileName)).use { fileReader ->
-                var line = fileReader.readLine()
-                while (line != null) {
-                    val csvLine = line.split('\t')
-                    val tconst = csvLine[0].convertToNullWhenEmpty() ?: throw throw ImportException(
-                        field = "tconst",
-                        line = csvLine
-                    )
-                    val directors = csvLine[1].convertToNullWhenEmpty()?.split(",")
-                    val writers = csvLine[2].convertToNullWhenEmpty()?.split(",")
+            readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
+                    val tconst = columns[0].convertToNullWhenEmpty() ?: throw throw ImportException(field = "tconst")
+                    val directors = columns[1].convertToNullWhenEmpty()?.split(",")
+                    val writers = columns[2].convertToNullWhenEmpty()?.split(",")
 
                     val directorAndWriter = findTheSameName(directors, writers)
-                    if (!directorAndWriter.isNullOrEmpty())
-                        writerAndDirectorToTitle[directorAndWriter] = tconst
-
-                    line = fileReader.readLine()
-                }
+                    if (!directorAndWriter.isNullOrEmpty()) writerAndDirectorToTitle[directorAndWriter] = tconst
             }
         } catch (e: Exception) {
             logger.error("TitleCrewService finished in ${System.currentTimeMillis() - start}ms", e)

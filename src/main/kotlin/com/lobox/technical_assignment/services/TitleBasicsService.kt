@@ -1,25 +1,27 @@
 package com.lobox.technical_assignment.services
 
-import com.lobox.technical_assignment.db.entities.TitleBasicsEntity
+import com.lobox.technical_assignment.models.Page
+import com.lobox.technical_assignment.models.PageableRequest
+import com.lobox.technical_assignment.models.TitleBasicsModel
 import com.lobox.technical_assignment.util.*
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.TreeMap
 
 @Service
 class TitleBasicsService(
     val titleCrewService: TitleCrewService,
+    val titlePrincipalService: TitlePrincipalService,
+    val titleRatingService: TitleRatingService,
     val nameBasicsService: NameBasicsService,
     @Value("\${com.lobox.technical_assignment.csv_path}")
     val datasetPath: String,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val genreToTitles = mutableMapOf<String, MutableList<String>>()
-    private val titleToContent = TreeMap<String, TitleBasicsEntity>()
+    private val titleToContent = TreeMap<String, TitleBasicsModel>()
 
     companion object {
         private const val csvFileName = "title.basics.tsv"
@@ -31,25 +33,18 @@ class TitleBasicsService(
         val start = System.currentTimeMillis()
 
         try {
-            Files.newBufferedReader(Path.of(datasetPath, csvFileName)).use { fileReader ->
-                fileReader.readLine()
-                var line = fileReader.readLine()
-                while (line != null) {
-                    val csvLine = line.split('\t')
-                    val tconst = csvLine.first()
-                    val genresString = csvLine.last()
+            readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
+                val tconst = columns.first()
+                val genresString = columns.last()
 
-                    val genreList = genresString.convertToNullWhenEmpty()?.split(',')
-                    genreList?.forEach { genre ->
-                        val titles = genreToTitles[genre] ?: mutableListOf()
-                        titles.add(tconst)
-                        genreToTitles[genre] = titles
-                    }
-
-                    titleToContent[tconst] = TitleBasicsEntity.of(csvLine)
-
-                    line = fileReader.readLine()
+                val genreList = genresString.convertToNullWhenEmpty()?.split(',')
+                genreList?.forEach { genre ->
+                    val titles = genreToTitles[genre] ?: mutableListOf()
+                    titles.add(tconst)
+                    genreToTitles[genre] = titles
                 }
+
+                titleToContent[tconst] = TitleBasicsModel.of(columns)
             }
         } catch (e: Exception) {
             logger.error("TitleBasicsService finished in ${System.currentTimeMillis() - start}ms", e)
@@ -57,21 +52,34 @@ class TitleBasicsService(
         logger.info("TitleBasicsService finished in ${System.currentTimeMillis() - start}ms")
     }
 
-    fun getTitlesIdWithSameAliveDirectorAndWriter(pageNumber: Int, pageSize: Int) =
-        titleCrewService.getWriterAndDirectorToTitle()
-            .filter { (writerAndDirector, _) -> nameBasicsService.getNames()[writerAndDirector] ?: false }
+    fun getTitlesWithSameAliveDirectorAndWriter(pageableRequest: PageableRequest): Page<TitleBasicsModel> {
+        val titleChunks = titleCrewService.getWriterAndDirectorToTitle()
+            .filter { (writerAndDirector, _) -> nameBasicsService.isPersonAlive(writerAndDirector) ?: false }
             .values
-            .chunked(pageSize)[pageNumber]
-
-    fun getTitlesIdWithSameAliveDirectorAndWriter() =
-        titleCrewService.getWriterAndDirectorToTitle()
-            .filter { (writerAndDirector, _) -> nameBasicsService.getNames()[writerAndDirector] ?: false }
-            .mapNotNull { (_, title) -> title }
-
-    fun getTitlesWithSameAliveDirectorAndWriter(pageNumber: Int, pageSize: Int) =
-        titleCrewService.getWriterAndDirectorToTitle()
-            .filter { (writerAndDirector, _) -> nameBasicsService.getNames()[writerAndDirector] ?: false }
-            .keys
-            .chunked(pageSize)[pageNumber]
+            .chunked(pageableRequest.pageSize)
+        val titles = titleChunks[pageableRequest.pageNumber]
             .mapNotNull { tconst -> titleToContent[tconst] }
+        return Page(items = titles, currentPage = pageableRequest.pageNumber, totalPage = titleChunks.size)
+    }
+
+    fun getTitlesPlayedByActor(actors: List<String>): List<TitleBasicsModel> {
+        return actors
+            .mapNotNull { actor ->
+                titlePrincipalService.getPrincipalTitles(
+                    actor,
+                    TitlePrincipalService.Companion.Job.ACTOR
+                )
+            }
+            .flatten()
+            .groupBy { it }
+            .mapNotNull { (tconst,  repeatedTitles) ->
+                if (repeatedTitles.size > 1) titleToContent[tconst] else return@mapNotNull null
+            }
+    }
+
+    fun bestGenreTitles(genre: String) = genreToTitles[genre]
+        ?.sortedByDescending { tconst -> titleRatingService.getTitleRate(tconst) }
+        ?.mapNotNull { tconst -> titleToContent[tconst] }
+        ?.groupBy { it.startYear }
+        ?.mapValues { (_, titles) -> if (titles.size > 10) titles.subList(0, 9) else titles }
 }

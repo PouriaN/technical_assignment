@@ -1,6 +1,7 @@
 package com.lobox.technical_assignment.services
 
 import com.lobox.technical_assignment.util.convertToNullWhenEmpty
+import com.lobox.technical_assignment.util.readCsv
 import com.lobox.technical_assignment.util.toBool
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
@@ -28,21 +29,14 @@ class NameBasicsService(
         try {
             logger.info("initializing has been started NameBasicsService")
 
-            Files.newBufferedReader(Path.of(datasetPath, csvFileName)).use { fileReader ->
-                fileReader.readLine()
-                var line = fileReader.readLine()
-                while (line != null) {
-                    val csvLine = line.split('\t')
-                    nameToAlive[csvLine[0]] = csvLine[3].convertToNullWhenEmpty().isNullOrEmpty()
-                    line = fileReader.readLine()
-                }
+            readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
+                nameToAlive[columns[0]] = columns[3].convertToNullWhenEmpty().isNullOrEmpty()
             }
             logger.info("NameBasicsService finished in ${System.currentTimeMillis() - start}ms")
-
         } catch (e: Exception) {
             logger.error("NameBasicsService finished in ${System.currentTimeMillis() - start}ms", e)
         }
     }
 
-    fun getNames() = nameToAlive
+    fun isPersonAlive(tconst: String) = nameToAlive[tconst]
 }
