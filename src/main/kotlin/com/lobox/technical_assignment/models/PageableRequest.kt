@@ -1,6 +1,6 @@
 package com.lobox.technical_assignment.models
 
-class PageableRequest {
-    val pageSize = 10
-    val pageNumber = 0
-}
+data class PageableRequest(
+    val pageSize: Int = 10,
+    val pageNumber: Int = 0,
+)

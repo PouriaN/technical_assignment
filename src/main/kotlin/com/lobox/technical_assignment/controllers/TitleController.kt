@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/titles")
 class TitleController(val titleBasicsService: TitleBasicsService) {
     @GetMapping("/same_director_writer")
-    fun getTitlesWithSameDirectorAndWriter(@ModelAttribute pageableRequest: PageableRequest) =
+    fun getTitlesWithSameDirectorAndWriter(pageableRequest: PageableRequest) =
+
         titleBasicsService.getTitlesWithSameAliveDirectorAndWriter(pageableRequest)
 
     @GetMapping("/actors")
-    fun getTitlesBasedOnActors(@RequestParam actors: List<String>) = titleBasicsService.getTitlesPlayedByActor(actors)
+    fun getTitlesBasedOnActors(actors: List<String>) = titleBasicsService.getTitlesPlayedByActor(actors)
 
     @GetMapping("/genre/{genre}")
     fun getGenreTitles(@PathVariable genre: String) = titleBasicsService.bestGenreTitles(genre)
