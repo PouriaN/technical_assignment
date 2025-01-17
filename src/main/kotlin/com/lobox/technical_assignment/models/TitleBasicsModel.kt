@@ -1,5 +1,6 @@
 package com.lobox.technical_assignment.models
 
+import com.lobox.technical_assignment.exceptions.ImportException
 import com.lobox.technical_assignment.util.convertToNullWhenEmpty
 import com.lobox.technical_assignment.util.toBool
 
@@ -16,11 +17,11 @@ data class TitleBasicsModel(
 ) {
     companion object {
         fun of(values: List<String>) = TitleBasicsModel(
-            tconst = values[0].convertToNullWhenEmpty() ?: throw Exception("import exception"),
-            titleType = values[1].convertToNullWhenEmpty() ?: throw Exception("import exception"),
-            primaryTitle = values[2].convertToNullWhenEmpty() ?: throw Exception("import exception"),
-            originalTitle = values[3].convertToNullWhenEmpty() ?: throw Exception("import exception"),
-            isAdult = values[4].convertToNullWhenEmpty()?.toBool() ?: throw Exception("import exception"),
+            tconst = values[0].convertToNullWhenEmpty() ?: throw ImportException("tconst"),
+            titleType = values[1].convertToNullWhenEmpty() ?: throw ImportException("titleType"),
+            primaryTitle = values[2].convertToNullWhenEmpty() ?: throw ImportException("primaryTitle"),
+            originalTitle = values[3].convertToNullWhenEmpty() ?: throw ImportException("originalTitle"),
+            isAdult = values[4].convertToNullWhenEmpty()?.toBool() ?: throw ImportException("isAdult"),
             startYear = values[5].convertToNullWhenEmpty(),
             endYear = values[6].convertToNullWhenEmpty(),
             runtimeMinutes = values[7].convertToNullWhenEmpty()?.toInt(),

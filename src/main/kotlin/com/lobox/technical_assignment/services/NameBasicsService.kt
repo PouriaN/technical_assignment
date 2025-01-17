@@ -2,13 +2,10 @@ package com.lobox.technical_assignment.services
 
 import com.lobox.technical_assignment.util.convertToNullWhenEmpty
 import com.lobox.technical_assignment.util.readCsv
-import com.lobox.technical_assignment.util.toBool
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.TreeMap
 
 @Service
@@ -17,7 +14,7 @@ class NameBasicsService(
     val datasetPath: String,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val nameToAlive = TreeMap<String, Boolean>()
+    private val isPersonAlive = TreeMap<String, Boolean>()
 
     companion object {
         private const val csvFileName = "name.basics.tsv"
@@ -30,7 +27,7 @@ class NameBasicsService(
             logger.info("initializing has been started NameBasicsService")
 
             readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
-                nameToAlive[columns[0]] = columns[3].convertToNullWhenEmpty().isNullOrEmpty()
+                isPersonAlive[columns[0]] = columns[3].convertToNullWhenEmpty().isNullOrEmpty()
             }
             logger.info("NameBasicsService finished in ${System.currentTimeMillis() - start}ms")
         } catch (e: Exception) {
@@ -38,5 +35,5 @@ class NameBasicsService(
         }
     }
 
-    fun isPersonAlive(tconst: String) = nameToAlive[tconst]
+    fun isPersonAlive(tconst: String) = isPersonAlive[tconst]
 }

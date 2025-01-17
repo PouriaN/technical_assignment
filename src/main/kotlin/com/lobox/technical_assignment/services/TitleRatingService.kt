@@ -32,7 +32,8 @@ class TitleRatingService(
         try {
             readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
                 val tconst = columns[0].convertToNullWhenEmpty() ?: throw ImportException("tconst")
-                val averageRating = columns[1].convertToNullWhenEmpty()?.toDouble() ?: throw ImportException("averageRating")
+                val averageRating =
+                    columns[1].convertToNullWhenEmpty()?.toDouble() ?: throw ImportException("averageRating")
                 val numVotes = columns[2].convertToNullWhenEmpty()?.toInt() ?: throw ImportException("numVotes")
                 titleToWilsonLowerBound[tconst] = wilsonLowerBound(rate = averageRating, votesNumber = numVotes)
             }

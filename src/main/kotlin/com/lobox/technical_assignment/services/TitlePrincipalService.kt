@@ -20,6 +20,7 @@ class TitlePrincipalService(
     companion object {
         private const val csvFileName = "title.principals.tsv"
         private val acceptableJobCategories = listOf(Job.ACTOR.title)
+
         enum class Job(val title: String) {
             ACTOR("actor")
         }

@@ -20,8 +20,8 @@ class TitleBasicsService(
     val datasetPath: String,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val genreToTitles = mutableMapOf<String, MutableList<String>>()
-    private val titleToContent = TreeMap<String, TitleBasicsModel>()
+    private val genreToTitlesId = mutableMapOf<String, MutableList<String>>()
+    private val titleIdToContent = TreeMap<String, TitleBasicsModel>()
 
     companion object {
         private const val csvFileName = "title.basics.tsv"
@@ -39,12 +39,12 @@ class TitleBasicsService(
 
                 val genreList = genresString.convertToNullWhenEmpty()?.split(',')
                 genreList?.forEach { genre ->
-                    val titles = genreToTitles[genre] ?: mutableListOf()
-                    titles.add(tconst)
-                    genreToTitles[genre] = titles
+                    val titlesId = genreToTitlesId[genre] ?: mutableListOf()
+                    titlesId.add(tconst)
+                    genreToTitlesId[genre] = titlesId
                 }
 
-                titleToContent[tconst] = TitleBasicsModel.of(columns)
+                titleIdToContent[tconst] = TitleBasicsModel.of(columns)
             }
         } catch (e: Exception) {
             logger.error("TitleBasicsService finished in ${System.currentTimeMillis() - start}ms", e)
@@ -53,33 +53,32 @@ class TitleBasicsService(
     }
 
     fun getTitlesWithSameAliveDirectorAndWriter(pageableRequest: PageableRequest): Page<TitleBasicsModel> {
-        val titleChunks = titleCrewService.getWriterAndDirectorToTitle()
-            .filter { (writerAndDirector, _) -> nameBasicsService.isPersonAlive(writerAndDirector) ?: false }
+        val titlesIdChunks = titleCrewService.getWriterAndDirectorToTitlesId()
+            .filter { (writerAndDirector, _) -> nameBasicsService.isPersonAlive(tconst = writerAndDirector) ?: false }
             .values
             .chunked(pageableRequest.pageSize)
-        val titles = titleChunks[pageableRequest.pageNumber]
-            .mapNotNull { tconst -> titleToContent[tconst] }
-        return Page(items = titles, currentPage = pageableRequest.pageNumber, totalPage = titleChunks.size)
+        val titles = titlesIdChunks[pageableRequest.pageNumber]
+            .mapNotNull { tconst -> titleIdToContent[tconst] }
+        return Page(items = titles, currentPage = pageableRequest.pageNumber, totalPage = titlesIdChunks.size)
     }
 
-    fun getTitlesPlayedByActor(actors: List<String>): List<TitleBasicsModel> {
-        return actors
-            .mapNotNull { actor ->
-                titlePrincipalService.getPrincipalTitles(
-                    actor,
-                    TitlePrincipalService.Companion.Job.ACTOR
-                )
-            }
-            .flatten()
-            .groupBy { it }
-            .mapNotNull { (tconst,  repeatedTitles) ->
-                if (repeatedTitles.size > 1) titleToContent[tconst] else return@mapNotNull null
-            }
-    }
+    fun getTitlesPlayedByActor(actors: List<String>) = actors
+        .mapNotNull { actor ->
+            titlePrincipalService.getPrincipalTitles(
+                tconst = actor,
+                job = TitlePrincipalService.Companion.Job.ACTOR
+            )
+        }
+        .flatten()
+        .groupBy { it }
+        .mapNotNull { (tconst, repeatedTitles) ->
+            if (repeatedTitles.size > 1) titleIdToContent[tconst] else return@mapNotNull null
+        }
 
-    fun bestGenreTitles(genre: String) = genreToTitles[genre]
-        ?.sortedByDescending { tconst -> titleRatingService.getTitleRate(tconst) }
-        ?.mapNotNull { tconst -> titleToContent[tconst] }
+
+    fun bestGenreTitles(genre: String) = genreToTitlesId[genre]
+        ?.sortedByDescending { tconst -> titleRatingService.getTitleRate(tconst = tconst) }
+        ?.mapNotNull { tconst -> titleIdToContent[tconst] }
         ?.groupBy { it.startYear }
         ?.mapValues { (_, titles) -> if (titles.size > 10) titles.subList(0, 9) else titles }
 }

@@ -7,8 +7,6 @@ import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.TreeMap
 
 @Service
@@ -19,6 +17,7 @@ class TitleCrewService(
     companion object {
         private const val csvFileName = "title.crew.tsv"
     }
+
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val writerAndDirectorToTitle = TreeMap<String, String>()
 
@@ -28,12 +27,12 @@ class TitleCrewService(
         val start = System.currentTimeMillis()
         try {
             readCsv(directory = datasetPath, fileName = csvFileName) { columns ->
-                    val tconst = columns[0].convertToNullWhenEmpty() ?: throw throw ImportException(field = "tconst")
-                    val directors = columns[1].convertToNullWhenEmpty()?.split(",")
-                    val writers = columns[2].convertToNullWhenEmpty()?.split(",")
+                val tconst = columns[0].convertToNullWhenEmpty() ?: throw throw ImportException(field = "tconst")
+                val directors = columns[1].convertToNullWhenEmpty()?.split(",")
+                val writers = columns[2].convertToNullWhenEmpty()?.split(",")
 
-                    val directorAndWriter = findTheSameName(directors, writers)
-                    if (!directorAndWriter.isNullOrEmpty()) writerAndDirectorToTitle[directorAndWriter] = tconst
+                val directorAndWriter = findTheSameName(directors, writers)
+                if (!directorAndWriter.isNullOrEmpty()) writerAndDirectorToTitle[directorAndWriter] = tconst
             }
         } catch (e: Exception) {
             logger.error("TitleCrewService finished in ${System.currentTimeMillis() - start}ms", e)
@@ -41,7 +40,7 @@ class TitleCrewService(
         logger.info("TitleCrewService finished in ${System.currentTimeMillis() - start}ms")
     }
 
-    fun getWriterAndDirectorToTitle() = writerAndDirectorToTitle
+    fun getWriterAndDirectorToTitlesId() = writerAndDirectorToTitle
 
     fun findTheSameName(directors: List<String>?, writers: List<String>?) =
         directors?.firstOrNull { director -> writers?.contains(director) ?: false }
